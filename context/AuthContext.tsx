@@ -30,6 +30,7 @@ interface AuthContextType {
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   setLanguage: (lang: string) => Promise<void>;
+  updateAvatar: (newAvatarUrl: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -151,6 +152,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const updateAvatar = async (newAvatarUrl: string) => {
+    if (user) {
+      const updatedUser = { ...user, avatarUrl: newAvatarUrl };
+      try {
+        await AsyncStorage.setItem("@user", JSON.stringify(updatedUser));
+        setUser(updatedUser);
+      } catch (error) {
+        console.error("Error updating avatar:", error);
+        throw error;
+      }
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -161,6 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         register,
         logout,
         setLanguage,
+        updateAvatar,
       }}
     >
       {children}

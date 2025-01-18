@@ -1,54 +1,51 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState } from "react";
 
-interface ProfileData {
-  username: string;
-  bio: string;
-  website: string;
-  profileImage: string;
-  socialLinks: {
-    linkedin: string;
-    instagram: string;
-    twitter: string;
-    github: string;
-  };
+interface SocialLinks {
+  linkedin: string;
+  github: string;
+  instagram: string;
+  twitter: string;
 }
 
 interface ProfileContextType {
-  profileData: ProfileData;
-  updateProfile: (data: Partial<ProfileData>) => void;
+  bio: string;
+  setBio: (bio: string) => void;
+  website: string;
+  setWebsite: (website: string) => void;
+  socialLinks: SocialLinks;
+  setSocialLinks: (socialLinks: SocialLinks) => void;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
-export function ProfileProvider({ children }: { children: ReactNode }) {
-  const [profileData, setProfileData] = useState<ProfileData>({
-    username: "gerard",
-    bio: "¡Hola! Soy un entusiasta de la tecnología y el desarrollo web. Me encanta aprender nuevas habilidades y compartir conocimientos con la comunidad.",
-    website: "",
-    profileImage: "https://via.placeholder.com/150",
-    socialLinks: {
-      linkedin: "",
-      instagram: "",
-      twitter: "",
-      github: "",
-    },
-  });
-
-  const updateProfile = (newData: Partial<ProfileData>) => {
-    setProfileData((prev) => ({ ...prev, ...newData }));
-  };
-
-  return (
-    <ProfileContext.Provider value={{ profileData, updateProfile }}>
-      {children}
-    </ProfileContext.Provider>
-  );
-}
-
-export const useProfile = () => {
+export function useProfile() {
   const context = useContext(ProfileContext);
   if (context === undefined) {
     throw new Error("useProfile must be used within a ProfileProvider");
   }
   return context;
-};
+}
+
+export function ProfileProvider({ children }: { children: React.ReactNode }) {
+  const [bio, setBio] = useState("");
+  const [website, setWebsite] = useState("");
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>({
+    linkedin: "",
+    github: "",
+    instagram: "",
+    twitter: "",
+  });
+
+  const value = {
+    bio,
+    setBio,
+    website,
+    setWebsite,
+    socialLinks,
+    setSocialLinks,
+  };
+
+  return (
+    <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>
+  );
+}

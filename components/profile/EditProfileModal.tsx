@@ -1,340 +1,302 @@
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
+  Modal,
   View,
   Text,
-  Modal,
-  StyleSheet,
-  Pressable,
   TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
-  ScrollView,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import { Feather } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Colors } from "@/constants/Colors";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useProfile } from "./ProfileContext";
 
-interface IEditProfileModalProps {
+interface EditProfileModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
-export function EditProfileModal({ visible, onClose }: IEditProfileModalProps) {
-  const { profileData, updateProfile } = useProfile();
-  const [formData, setFormData] = useState({
-    username: profileData.username,
-    bio: profileData.bio,
-    website: profileData.website,
-    profileImage: profileData.profileImage,
-    socialLinks: { ...profileData.socialLinks },
+interface UpdatedProfile {
+  nombre: string;
+  apellido: string;
+  email: string;
+  DNI: string;
+  fechaNacimiento: Date;
+  bio: string;
+  website: string;
+  linkedin: string;
+  github: string;
+  instagram: string;
+  twitter: string;
+}
+
+export const EditProfileModal: React.FC<EditProfileModalProps> = ({
+  visible,
+  onClose,
+}) => {
+  const { bio, setBio, website, setWebsite, socialLinks, setSocialLinks } =
+    useProfile();
+  const [profile, setProfile] = useState<UpdatedProfile>({
+    nombre: "",
+    apellido: "",
+    email: "",
+    DNI: "",
+    fechaNacimiento: new Date(),
+    bio,
+    website,
+    linkedin: socialLinks.linkedin,
+    github: socialLinks.github,
+    instagram: socialLinks.instagram,
+    twitter: socialLinks.twitter,
   });
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-  useEffect(() => {
-    if (visible) {
-      setFormData({
-        username: profileData.username,
-        bio: profileData.bio,
-        website: profileData.website,
-        profileImage: profileData.profileImage,
-        socialLinks: { ...profileData.socialLinks },
-      });
-    }
-  }, [visible, profileData]);
-
-  const handlePickImage = async () => {
-    try {
-      const permissionResult =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-      if (!permissionResult.granted) {
-        Alert.alert(
-          "Permiso Denegado",
-          "Necesitamos acceso a tu galería para cambiar la foto de perfil."
-        );
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        setFormData((prev) => ({
-          ...prev,
-          profileImage: result.assets[0].uri,
-        }));
-      }
-    } catch (error) {
-      Alert.alert("Error", "No se pudo seleccionar la imagen");
-    }
-  };
-
-  const handleSocialLinkChange = (
-    platform: keyof typeof formData.socialLinks,
-    value: string
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      socialLinks: {
-        ...prev.socialLinks,
-        [platform]: value,
-      },
-    }));
+  const handleChange = (key: keyof UpdatedProfile, value: string | Date) => {
+    setProfile((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSave = () => {
-    updateProfile(formData);
-    Alert.alert("Éxito", "Perfil actualizado correctamente", [
-      { text: "OK", onPress: onClose },
-    ]);
+    setBio(profile.bio);
+    setWebsite(profile.website);
+    setSocialLinks({
+      linkedin: profile.linkedin,
+      github: profile.github,
+      instagram: profile.instagram,
+      twitter: profile.twitter,
+    });
+    onClose();
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent={true}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.modalContainer}
+        style={styles.keyboardAvoidingView}
       >
-        <View style={styles.modalContent}>
-          <View style={styles.header}>
-            <Pressable onPress={onClose} style={styles.closeButton}>
-              <Feather name="x" size={24} color="#fff" />
-            </Pressable>
-            <Text style={styles.title}>Editar Perfil</Text>
-            <Pressable onPress={handleSave} style={styles.saveButton}>
-              <Text style={styles.saveButtonText}>Guardar</Text>
-            </Pressable>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.header}>
+              <TouchableOpacity onPress={onClose}>
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={Colors.white}
+                />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Editar perfil</Text>
+              <TouchableOpacity onPress={handleSave}>
+                <Text style={styles.saveButton}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.scrollView}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Nombre</Text>
+                <TextInput
+                  style={styles.input}
+                  value={profile.nombre}
+                  onChangeText={(text) => handleChange("nombre", text)}
+                  placeholder="Nombre"
+                  placeholderTextColor={Colors.grey}
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Apellido</Text>
+                <TextInput
+                  style={styles.input}
+                  value={profile.apellido}
+                  onChangeText={(text) => handleChange("apellido", text)}
+                  placeholder="Apellido"
+                  placeholderTextColor={Colors.grey}
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  value={profile.email}
+                  onChangeText={(text) => handleChange("email", text)}
+                  placeholder="Email"
+                  placeholderTextColor={Colors.grey}
+                  keyboardType="email-address"
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>DNI</Text>
+                <TextInput
+                  style={styles.input}
+                  value={profile.DNI}
+                  onChangeText={(text) => handleChange("DNI", text)}
+                  placeholder="DNI"
+                  placeholderTextColor={Colors.grey}
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Fecha de nacimiento</Text>
+                <TouchableOpacity
+                  style={styles.datePickerButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={styles.datePickerButtonText}>
+                    {profile.fechaNacimiento.toLocaleDateString()}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Biografía</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={profile.bio}
+                  onChangeText={(text) => handleChange("bio", text)}
+                  placeholder="Cuéntanos sobre ti"
+                  placeholderTextColor={Colors.grey}
+                  multiline
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Sitio web</Text>
+                <TextInput
+                  style={styles.input}
+                  value={profile.website}
+                  onChangeText={(text) => handleChange("website", text)}
+                  placeholder="https://tuwebsite.com"
+                  placeholderTextColor={Colors.grey}
+                  keyboardType="url"
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>LinkedIn</Text>
+                <TextInput
+                  style={styles.input}
+                  value={profile.linkedin}
+                  onChangeText={(text) => handleChange("linkedin", text)}
+                  placeholder="https://linkedin.com/in/usuario"
+                  placeholderTextColor={Colors.grey}
+                  keyboardType="url"
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>GitHub</Text>
+                <TextInput
+                  style={styles.input}
+                  value={profile.github}
+                  onChangeText={(text) => handleChange("github", text)}
+                  placeholder="https://github.com/usuario"
+                  placeholderTextColor={Colors.grey}
+                  keyboardType="url"
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Instagram</Text>
+                <TextInput
+                  style={styles.input}
+                  value={profile.instagram}
+                  onChangeText={(text) => handleChange("instagram", text)}
+                  placeholder="https://instagram.com/usuario"
+                  placeholderTextColor={Colors.grey}
+                  keyboardType="url"
+                />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Twitter</Text>
+                <TextInput
+                  style={styles.input}
+                  value={profile.twitter}
+                  onChangeText={(text) => handleChange("twitter", text)}
+                  placeholder="https://twitter.com/usuario"
+                  placeholderTextColor={Colors.grey}
+                  keyboardType="url"
+                />
+              </View>
+            </ScrollView>
           </View>
-
-          <ScrollView style={styles.form}>
-            <Pressable style={styles.imageButton} onPress={handlePickImage}>
-              <Feather name="camera" size={24} color="#1d9bf0" />
-              <Text style={styles.imageButtonText}>Cambiar foto de perfil</Text>
-            </Pressable>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nombre</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.username}
-                onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, username: text }))
-                }
-                placeholder="Tu nombre"
-                placeholderTextColor="#71767b"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Biografía</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={formData.bio}
-                onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, bio: text }))
-                }
-                placeholder="Cuéntanos sobre ti"
-                placeholderTextColor="#71767b"
-                multiline
-                numberOfLines={4}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Sitio Web</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.website}
-                onChangeText={(text) =>
-                  setFormData((prev) => ({ ...prev, website: text }))
-                }
-                placeholder="https://..."
-                placeholderTextColor="#71767b"
-                keyboardType="url"
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Redes Sociales</Text>
-
-              <View style={styles.inputGroup}>
-                <View style={styles.socialInputContainer}>
-                  <Feather name="linkedin" size={20} color="#1d9bf0" />
-                  <TextInput
-                    style={[styles.input, styles.socialInput]}
-                    value={formData.socialLinks.linkedin}
-                    onChangeText={(text) =>
-                      handleSocialLinkChange("linkedin", text)
-                    }
-                    placeholder="URL de LinkedIn"
-                    placeholderTextColor="#71767b"
-                    keyboardType="url"
-                    autoCapitalize="none"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <View style={styles.socialInputContainer}>
-                  <Feather name="instagram" size={20} color="#1d9bf0" />
-                  <TextInput
-                    style={[styles.input, styles.socialInput]}
-                    value={formData.socialLinks.instagram}
-                    onChangeText={(text) =>
-                      handleSocialLinkChange("instagram", text)
-                    }
-                    placeholder="URL de Instagram"
-                    placeholderTextColor="#71767b"
-                    keyboardType="url"
-                    autoCapitalize="none"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <View style={styles.socialInputContainer}>
-                  <Feather name="twitter" size={20} color="#1d9bf0" />
-                  <TextInput
-                    style={[styles.input, styles.socialInput]}
-                    value={formData.socialLinks.twitter}
-                    onChangeText={(text) =>
-                      handleSocialLinkChange("twitter", text)
-                    }
-                    placeholder="URL de Twitter"
-                    placeholderTextColor="#71767b"
-                    keyboardType="url"
-                    autoCapitalize="none"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <View style={styles.socialInputContainer}>
-                  <Feather name="github" size={20} color="#1d9bf0" />
-                  <TextInput
-                    style={[styles.input, styles.socialInput]}
-                    value={formData.socialLinks.github}
-                    onChangeText={(text) =>
-                      handleSocialLinkChange("github", text)
-                    }
-                    placeholder="URL de GitHub"
-                    placeholderTextColor="#71767b"
-                    keyboardType="url"
-                    autoCapitalize="none"
-                  />
-                </View>
-              </View>
-            </View>
-          </ScrollView>
         </View>
       </KeyboardAvoidingView>
+      {showDatePicker && (
+        <DateTimePicker
+          value={profile.fechaNacimiento}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) {
+              handleChange("fechaNacimiento", selectedDate);
+            }
+          }}
+        />
+      )}
     </Modal>
   );
-}
+};
 
 const styles = StyleSheet.create({
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   modalContainer: {
     flex: 1,
+    justifyContent: "flex-end",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    flex: 1,
-    backgroundColor: "#000000",
-    marginTop: 50,
+    backgroundColor: Colors.black,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
+    maxHeight: "90%",
   },
   header: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#2f3336",
   },
-  closeButton: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  title: {
+  headerTitle: {
+    color: Colors.white,
     fontSize: 18,
     fontWeight: "bold",
-    color: "#ffffff",
   },
   saveButton: {
-    backgroundColor: "#1d9bf0",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  saveButtonText: {
-    color: "#ffffff",
-    fontWeight: "600",
-  },
-  form: {
-    padding: 16,
-  },
-  imageButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#2f3336",
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  imageButtonText: {
-    color: "#1d9bf0",
+    color: Colors.primary,
     fontSize: 16,
+    fontWeight: "bold",
   },
-  inputGroup: {
+  scrollView: {
+    maxHeight: "80%",
+  },
+  inputContainer: {
     marginBottom: 20,
+    paddingHorizontal: 16,
   },
   label: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "500",
+    color: Colors.grey,
+    fontSize: 14,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: "#000000",
-    borderWidth: 1,
-    borderColor: "#2f3336",
+    backgroundColor: "#1a1a1a",
     borderRadius: 8,
     padding: 12,
-    color: "#ffffff",
+    color: Colors.white,
     fontSize: 16,
   },
   textArea: {
     height: 100,
     textAlignVertical: "top",
   },
-  section: {
-    marginTop: 8,
+  datePickerButton: {
+    backgroundColor: "#1a1a1a",
+    borderRadius: 8,
+    padding: 12,
   },
-  sectionTitle: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 16,
-  },
-  socialInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  socialInput: {
-    flex: 1,
+  datePickerButtonText: {
+    color: Colors.white,
+    fontSize: 16,
   },
 });
