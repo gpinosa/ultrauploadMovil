@@ -14,7 +14,7 @@ const { width: screenWidth } = Dimensions.get("window");
 
 export const HomeScreen: React.FC = () => {
   const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleNotificationPress = () => {
     console.log("Notificaciones presionado");
@@ -22,6 +22,26 @@ export const HomeScreen: React.FC = () => {
 
   const handleUploadPress = () => {
     setIsUploadModalVisible(true);
+  };
+
+  const handleEditProfile = () => {
+    console.log("Edit Profile pressed");
+    // Implementar lógica de edición de perfil aquí
+  };
+
+  const handleSettings = () => {
+    console.log("Settings pressed");
+    // Implementar lógica de configuración aquí
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      console.log("Logout successful");
+      // Aquí puedes agregar lógica adicional después del logout, como redireccionar al usuario
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
   };
 
   const quickActions: QuickActionProps[] = [
@@ -76,6 +96,9 @@ export const HomeScreen: React.FC = () => {
         <Header
           onNotificationPress={handleNotificationPress}
           avatarUrl={user?.avatarUrl}
+          onEditProfile={handleEditProfile}
+          onSettings={handleSettings}
+          onLogout={handleLogout}
         />
         <ScrollView
           style={styles.scrollView}
