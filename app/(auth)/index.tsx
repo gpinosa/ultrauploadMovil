@@ -7,7 +7,6 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
-  Alert,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useRouter } from "expo-router";
@@ -18,28 +17,36 @@ import { Colors } from "@/constants/Colors";
 export default function Login() {
   const router = useRouter();
   const { login } = useAuth();
-  const [getFormulario, setFormulario] = useState<{
-    email: string;
-    password: string;
-  }>({
+  const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [currentLanguage, setCurrentLanguage] = useState("es");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  let refPassword = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   const handleLogin = async () => {
-    if (!getFormulario.email || !getFormulario.password) {
-      Alert.alert("Error", "Hay que completar todos los campos");
-      return;
-    }
-
     try {
-      await login(getFormulario.email, getFormulario.password);
+      if (!formData.email || !formData.password) {
+        setError("Por favor, completa todos los campos");
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      await login(formData.email, formData.password);
       router.replace("/(tabs)");
     } catch (error) {
-      Alert.alert("Error", "No se pudo iniciar sesión");
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("Ha ocurrido un error inesperado");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -53,7 +60,6 @@ export default function Login() {
 
   const handleLanguageChange = (language: string) => {
     setCurrentLanguage(language);
-    // Aquí puedes agregar la lógica para cambiar el idioma en toda la aplicación
   };
 
   return (
@@ -81,39 +87,59 @@ export default function Login() {
           </Text>
 
           <View style={styles.form}>
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
             <TextInput
-              style={styles.input}
+              style={[styles.input, error && styles.inputError]}
               placeholder="Correo electrónico"
               placeholderTextColor="#666666"
               keyboardType="email-address"
               autoCapitalize="none"
-              value={getFormulario.email}
-              onChangeText={(email) =>
-                setFormulario({ ...getFormulario, email })
-              }
-              onSubmitEditing={() => refPassword.current?.focus()}
+              value={formData.email}
+              onChangeText={(email) => {
+                setFormData((prev) => ({ ...prev, email }));
+                setError(null);
+              }}
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              editable={!isLoading}
             />
 
             <TextInput
-              ref={refPassword}
-              style={styles.input}
+              ref={passwordRef}
+              style={[styles.input, error && styles.inputError]}
               placeholder="Contraseña"
               placeholderTextColor="#666666"
               secureTextEntry
-              value={getFormulario.password}
-              onChangeText={(password) =>
-                setFormulario({ ...getFormulario, password })
-              }
+              value={formData.password}
+              onChangeText={(password) => {
+                setFormData((prev) => ({ ...prev, password }));
+                setError(null);
+              }}
               onSubmitEditing={handleLogin}
+              editable={!isLoading}
             />
 
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+            <TouchableOpacity
+              style={[
+                styles.loginButton,
+                isLoading && styles.loginButtonDisabled,
+              ]}
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              <Text style={styles.loginButtonText}>
+                {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleForgotPassword}
               style={styles.forgotPassword}
+              disabled={isLoading}
             >
               <Text style={styles.forgotPasswordText}>
                 ¿Olvidaste tu contraseña?
@@ -123,6 +149,7 @@ export default function Login() {
             <TouchableOpacity
               onPress={handleRegister}
               style={styles.registerLink}
+              disabled={isLoading}
             >
               <Text style={styles.registerText}>
                 ¿Aún no tienes cuenta?{" "}
@@ -189,6 +216,19 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 320,
   },
+  errorContainer: {
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#ef4444",
+  },
+  errorText: {
+    color: "#ef4444",
+    fontSize: 14,
+    textAlign: "center",
+  },
   input: {
     backgroundColor: "#1a1a1a",
     borderRadius: 12,
@@ -196,6 +236,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 16,
     color: Colors.white,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  inputError: {
+    borderColor: "#ef4444",
   },
   loginButton: {
     backgroundColor: "#3b82f6",
@@ -203,6 +248,9 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: "center",
     marginTop: 8,
+  },
+  loginButtonDisabled: {
+    opacity: 0.7,
   },
   loginButtonText: {
     color: Colors.white,

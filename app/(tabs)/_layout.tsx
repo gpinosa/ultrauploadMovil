@@ -19,7 +19,7 @@ export default function TabLayout() {
           height: 60 + insets.bottom,
           backgroundColor: Colors.black,
           borderTopWidth: 1,
-          borderTopColor: Colors.black,
+          borderTopColor: "#2f3336",
           paddingBottom: insets.bottom,
         },
         tabBarActiveTintColor: Colors.blueAjustado,
@@ -35,6 +35,15 @@ export default function TabLayout() {
         tabBarItemStyle: {
           paddingTop: 8,
         },
+        headerStyle: {
+          backgroundColor: Colors.black,
+        },
+        headerShadowVisible: false,
+        ...Platform.select({
+          ios: {
+            headerStatusBarHeight: insets.top,
+          },
+        }),
       }}
     >
       <Tabs.Screen

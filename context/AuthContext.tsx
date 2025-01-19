@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { loginUser, registerUser } from "../services/api";
 
 interface User {
   id: string;
@@ -43,6 +44,13 @@ export const useAuth = () => {
   return context;
 };
 
+class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AuthError";
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -58,7 +66,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const checkUserLoggedIn = async () => {
     try {
       const userJson = await AsyncStorage.getItem("@user");
-      if (userJson) {
+      const token = await AsyncStorage.getItem("@token");
+      if (userJson && token) {
         setUser(JSON.parse(userJson));
       }
     } catch (error) {
@@ -80,25 +89,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
     try {
-      // Simular una llamada a la API
-      const mockUser: User = {
-        id: "1",
-        username: "testuser",
-        email: email,
-        avatarUrl: "https://example.com/avatar.jpg",
-        nombre: "Test",
-        apellido: "User",
-        fechaNacimiento: new Date("1990-01-01"),
-        DNI: "12345678A",
-      };
-
-      await AsyncStorage.setItem("@user", JSON.stringify(mockUser));
-      setUser(mockUser);
+      setIsLoading(true);
+      const { token, user } = await loginUser(email, password);
+      await AsyncStorage.setItem("@user", JSON.stringify(user));
+      await AsyncStorage.setItem("@token", token);
+      setUser(user);
     } catch (error) {
-      console.error("Login error:", error);
-      throw error;
+      if (error instanceof Error) {
+        // Remove any technical details from the error message
+        const userMessage = "Email o contraseña incorrectos";
+        throw new AuthError(userMessage);
+      }
+      throw new AuthError("Ha ocurrido un error inesperado");
     } finally {
       setIsLoading(false);
     }
@@ -107,24 +110,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const register = async (data: RegisterData) => {
     setIsLoading(true);
     try {
-      // Here you would typically make an API call to your backend to register the user
-      // For this example, we'll simulate a successful registration
-      const mockUser: User = {
-        id: "2",
-        username: data.nombreUsuario,
-        email: data.email,
-        avatarUrl: "https://example.com/avatar.jpg",
-        nombre: data.nombre,
-        apellido: data.apellido,
-        fechaNacimiento: data.fechaNacimiento,
-        DNI: data.DNI,
-      };
-
-      await AsyncStorage.setItem("@user", JSON.stringify(mockUser));
-      setUser(mockUser);
+      const { token, user } = await registerUser(data);
+      await AsyncStorage.setItem("@user", JSON.stringify(user));
+      await AsyncStorage.setItem("@token", token);
+      setUser(user);
     } catch (error) {
       console.error("Registration error:", error);
-      throw error;
+      if (error instanceof Error) {
+        if (error.message.includes("ya existe")) {
+          throw new Error("El email ya está registrado");
+        } else {
+          throw new Error(
+            "Error en el registro. Por favor, inténtalo de nuevo más tarde"
+          );
+        }
+      }
+      throw new Error("Ha ocurrido un error inesperado durante el registro");
     } finally {
       setIsLoading(false);
     }
@@ -134,10 +135,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsLoading(true);
     try {
       await AsyncStorage.removeItem("@user");
+      await AsyncStorage.removeItem("@token");
       setUser(null);
     } catch (error) {
       console.error("Logout error:", error);
-      throw error;
+      throw new Error("Error al cerrar sesión");
     } finally {
       setIsLoading(false);
     }
@@ -160,7 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setUser(updatedUser);
       } catch (error) {
         console.error("Error updating avatar:", error);
-        throw error;
+        throw new Error("Error al actualizar el avatar");
       }
     }
   };
